@@ -1,24 +1,26 @@
-import * as React from 'react';
-import * as DOM from 'react-dom';
-import { useStrict } from 'mobx';
-import { Provider } from 'mobx-react';
-import { Router } from 'react-router';
-
-// Polyfills for ES5, ES6, ES7
 import 'core-js';
 
-import { appHistory, routes } from './routes';
+import * as React from 'react';
+import { render } from 'react-dom';
+import { HashRouter, Route } from 'react-router-dom';
+import { Provider } from 'mobx-react';
+import { hot } from 'react-hot-loader';
+
 import * as stores from './stores';
 
-// Disables changing state outside of an action
-useStrict(true);
+import App from './components/app/App';
 
-const app = document.getElementById('vp');
+declare const module: { hot: any };
 
-DOM.render(
+const HotComponent = (Component: any) => hot(module)(Component);
+
+const root = document.getElementById('vp');
+
+render(
   <Provider {...stores}>
-    <Router history={appHistory}>
-      {routes}
-    </Router>
-  </Provider>
-, app);
+    <HashRouter>
+      <Route component={HotComponent(App)} />
+    </HashRouter>
+  </Provider>,
+  root,
+);

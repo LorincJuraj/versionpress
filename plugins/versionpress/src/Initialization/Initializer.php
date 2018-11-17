@@ -142,6 +142,7 @@ class Initializer
             $this->createVersionPressTables();
             $this->lockDatabase();
             $this->saveDatabaseToStorages();
+            $this->createCacheDirectory();
             $this->commitDatabase();
             $this->createGitRepository();
             $this->activateVersionPress();
@@ -416,6 +417,11 @@ class Initializer
         }
     }
 
+    private function createCacheDirectory()
+    {
+        FileSystem::mkdir(VERSIONPRESS_TEMP_DIR);
+    }
+
     /**
      * Commits db changes if database has been locked
      */
@@ -635,8 +641,8 @@ class Initializer
         if ((!isset($composerJson->scripts->{'pre-update-cmd'}) || $composerJson->scripts->{'pre-update-cmd'} === '') &&
             (!isset($composerJson->scripts->{'post-update-cmd'}) || $composerJson->scripts->{'post-update-cmd'} === '')
         ) {
-            $composerJson->scripts->{'pre-update-cmd'} = 'wp vp-composer prepare-for-composer-changes';
-            $composerJson->scripts->{'post-update-cmd'} = 'wp vp-composer commit-composer-changes';
+            $composerJson->scripts->{'pre-update-cmd'} = VP_WP_CLI_BINARY . ' vp-composer prepare-for-composer-changes';
+            $composerJson->scripts->{'post-update-cmd'} = VP_WP_CLI_BINARY . ' vp-composer commit-composer-changes';
 
             file_put_contents($composerJsonPath, json_encode($composerJson, JSON_PRETTY_PRINT));
         }
@@ -644,10 +650,10 @@ class Initializer
 
     private function persistActionsDefinitions()
     {
-        $this->actionsDefinitionRepository->restoreAllDefinitionFilesFromHistory();
+        $this->actionsDefinitionRepository->restoreAllActionsFilesFromHistory();
 
         foreach (get_option('active_plugins') as $plugin) {
-            $this->actionsDefinitionRepository->saveDefinitionForPlugin($plugin);
+            $this->actionsDefinitionRepository->saveActionsFileForPlugin($plugin);
         }
     }
 }

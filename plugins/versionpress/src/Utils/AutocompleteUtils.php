@@ -45,7 +45,7 @@ class AutocompleteUtils
         }
         return [
             'type' => 'list',
-            'defaultHint' => 'e.g. post/edit',
+            'defaultHint' => 'e.g. post/update',
             'sectionTitle' => 'Actions',
             'content' => $actions
         ];
@@ -110,7 +110,7 @@ class AutocompleteUtils
      * @param $string
      * @return string
      */
-    private function capitalize($string)
+    private static function capitalize($string)
     {
         $capitalizedString = Strings::firstUpper($string);
         return str_ireplace(

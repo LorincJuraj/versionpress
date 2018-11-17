@@ -12,7 +12,7 @@ use VersionPress\Database\EntityInfo;
  * Derived ChangeInfos have these things in common:
  *
  * - The VP-Action tag value has the form of "entityName/action/entityId",
- *   e.g. "post/create/8F805A77ABC9485BA3F114E3E251E5FD" or "option/edit/blogname".
+ *   e.g. "post/create/8F805A77ABC9485BA3F114E3E251E5FD" or "option/update/blogname".
  *   Most commonly, the entityId is VPID.
  *
  * - Subclasses usually provide a set of VP tags to store additional info to commits, usually
@@ -35,10 +35,11 @@ class EntityChangeInfo extends TrackedChangeInfo
      * @param string $entityId
      * @param array $customTags
      * @param array $customFiles
+     * @param int $priority
      */
-    public function __construct($entityInfo, $actionsInfo, $action, $entityId, $customTags = [], $customFiles = [])
+    public function __construct($entityInfo, $actionsInfo, $action, $entityId, $customTags = [], $customFiles = [], $priority = 10)
     {
-        parent::__construct($entityInfo->entityName, $actionsInfo, $action, $entityId, $customTags, $customFiles);
+        parent::__construct($entityInfo->entityName, $actionsInfo, $action, $entityId, $customTags, $customFiles, $priority);
         $this->entityInfo = $entityInfo;
         $this->actionsInfo = $actionsInfo;
     }

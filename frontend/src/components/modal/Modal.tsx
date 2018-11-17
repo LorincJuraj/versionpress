@@ -24,14 +24,18 @@ export default class Modal extends React.Component<ModalProps, {}> {
     onClose: () => {},
   };
 
-  contentNode: HTMLDivElement = null;
+  contentNode: HTMLDivElement | null = null;
 
   componentDidMount() {
-    this.contentNode.focus();
+    if (this.contentNode) {
+      this.contentNode.focus();
+    }
   }
 
   componentDidUpdate() {
-    this.contentNode.focus();
+    if (this.contentNode) {
+      this.contentNode.focus();
+    }
   }
 
   onBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -40,18 +44,18 @@ export default class Modal extends React.Component<ModalProps, {}> {
     if (this.props.enableBackgroundClickToClose) {
       this.closeModal();
     }
-  };
+  }
 
   onContentKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.keyCode === 27 && this.props.showCloseIcon) {
       this.closeModal();
     }
-  };
+  }
 
   private closeModal = () => {
-    this.props.onClose();
+    this.props.onClose!();
     portal.closePortal();
-  };
+  }
 
   render() {
     const { children, showCloseIcon, title } = this.props;
@@ -67,7 +71,7 @@ export default class Modal extends React.Component<ModalProps, {}> {
         >
           <Header
             title={title}
-            showCloseIcon={showCloseIcon}
+            showCloseIcon={!!showCloseIcon}
             onCloseClick={this.closeModal}
           />
           <Body>

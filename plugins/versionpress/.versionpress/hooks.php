@@ -2,10 +2,11 @@
 
 use Nette\Utils\Strings;
 use VersionPress\Actions\ActionsDefinitionRepository;
-use VersionPress\Actions\ActivePluginsVPFilesIterator;
+use VersionPress\Actions\PluginDefinitionDiscovery;
 use VersionPress\ChangeInfos\CommitMessageParser;
 use VersionPress\Database\Database;
 use VersionPress\Database\DbSchemaInfo;
+use VersionPress\Database\VpidRepository;
 use VersionPress\DI\VersionPressServices;
 use VersionPress\Git\GitRepository;
 use VersionPress\Initialization\WpdbReplacer;
@@ -22,9 +23,9 @@ add_filter('vp_entity_should_be_saved_post', function ($shouldBeSaved, $data, $s
         return false;
     }
 
-    // ignoring ajax autosaves
+    // ignoring ajax autosaves for drafts - WP saves them using Heartbeat API
     if ($isExistingEntity && isset($data['post_status']) && ($data['post_status'] === 'draft' &&
-            defined('DOING_AJAX') && DOING_AJAX === true)
+        defined('DOING_AJAX') && DOING_AJAX === true && $_POST['action'] === 'heartbeat')
     ) {
         return false;
     }
@@ -70,7 +71,7 @@ add_filter('vp_entity_should_be_saved_option', function ($shouldBeSaved, $data, 
 
 add_filter('vp_entity_action_post', function ($action, $oldEntity, $newEntity) {
 
-    if ($action === 'edit') { // determine more specific edit action
+    if ($action === 'update') { // determine more specific action
 
         $diff = EntityUtils::getDiff($oldEntity, $newEntity);
 
@@ -122,12 +123,28 @@ add_filter('vp_bulk_change_description_post', function ($description, $action, $
             return "Moved $count $postTypePlural to trash";
         case "untrash":
             return "Moved $count $postTypePlural from trash";
-        case "edit":
+        case "update":
             return "Updated $count $postTypePlural";
     }
 
     return $description;
 }, 10, 4);
+
+add_filter('vp_entity_tags_post', function ($tags, $oldEntity, $newEntity) {
+
+    global $versionPressContainer;
+
+    /** @var VpidRepository $vpidRepository */
+    $vpidRepository = $versionPressContainer->resolve(VersionPressServices::VPID_REPOSITORY);
+
+    $postVpid = isset($newEntity['vp_id']) ? $newEntity['vp_id'] : $oldEntity['vp_id'];
+    $postId = $vpidRepository->getIdForVpid($postVpid);
+
+    $postFormat = get_post_format($postId);
+    $tags['VP-Post-Format'] = $postFormat ?: $tags['VP-Post-Type'];
+
+    return $tags;
+}, 10, 3);
 
 add_filter('vp_entity_files_option', function ($files, $oldEntity, $newEntity) {
 
@@ -140,13 +157,21 @@ add_filter('vp_entity_files_option', function ($files, $oldEntity, $newEntity) {
     return $files;
 }, 10, 3);
 
+add_filter('vp_action_priority_option', function ($originalPriority, $action, $optionName, $entity) {
+    if ($optionName === 'WPLANG' && $action === 'create' && $entity['option_value'] === '') {
+        return 20;
+    }
+
+    return $originalPriority;
+}, 10, 4);
+
 add_filter('vp_entity_action_comment', function ($action, $oldEntity, $newEntity) {
 
     if ($action === 'create' && $newEntity['comment_approved'] == 0) {
         return 'create-pending';
     }
 
-    if ($action !== 'edit') {
+    if ($action !== 'update') {
         return $action;
     }
 
@@ -159,7 +184,7 @@ add_filter('vp_entity_action_comment', function ($action, $oldEntity, $newEntity
     if (($oldEntity['comment_approved'] === 'trash' && $newEntity['comment_approved'] === 'post-trashed') ||
         ($oldEntity['comment_approved'] === 'post-trashed' && $newEntity['comment_approved'] === 'trash')
     ) {
-        return 'edit'; // trash -> post-trashed and post-trashed -> trash are not interesting action for us
+        return 'update'; // trash -> post-trashed and post-trashed -> trash are not interesting action for us
     }
 
     if ($diff['comment_approved'] === 'trash') {
@@ -225,7 +250,7 @@ add_filter('vp_bulk_change_description_comment', function ($description, $action
 
 add_filter('vp_entity_action_term', function ($action, $oldEntity, $newEntity) {
 
-    if ($action === 'edit' && $oldEntity['name'] !== $newEntity['name']) {
+    if ($action === 'update' && $oldEntity['name'] !== $newEntity['name']) {
         return 'rename';
     }
 
@@ -233,10 +258,19 @@ add_filter('vp_entity_action_term', function ($action, $oldEntity, $newEntity) {
 }, 10, 3);
 
 add_filter('vp_entity_tags_term', function ($tags, $oldEntity, $newEntity, $action) {
+    global $versionPressContainer;
+    /** @var VpidRepository $vpidRepository */
+    $vpidRepository = $versionPressContainer->resolve(VersionPressServices::VPID_REPOSITORY);
 
     if ($action === 'rename') {
         $tags['VP-Term-OldName'] = $oldEntity['name'];
     }
+
+    $termVpid = $newEntity ? $newEntity['vp_id'] : $oldEntity['vp_id'];
+    $termId = $vpidRepository->getIdForVpid($termVpid);
+
+    $term = get_term($termId);
+    $tags['VP-Term-Taxonomy'] = $term instanceof WP_Term ? $term->taxonomy : 'term';
 
     return $tags;
 }, 10, 4);
@@ -321,7 +355,7 @@ add_filter('vp_action_description_postmeta', function ($message, $action, $vpid,
 
         $verbs = [
             'create' => 'Set',
-            'edit' => 'Changed',
+            'update' => 'Changed',
             'delete' => 'Removed',
         ];
 
@@ -392,7 +426,7 @@ add_action('vp_wordpress_updated', function ($version) {
     /** @var DbSchemaInfo $dbSchema */
     $dbSchema = $versionPressContainer->resolve(VersionPressServices::DB_SCHEMA);
     $tableSchemaStorage = $versionPressContainer->resolve(VersionPressServices::TABLE_SCHEMA_STORAGE);
-    $dbSchema->refreshDbSchema(new ActivePluginsVPFilesIterator('schema.yml'));
+    $dbSchema->refreshDbSchema(PluginDefinitionDiscovery::getPathsForActivePlugins('schema.yml'));
 
     vp_update_table_ddl_scripts($dbSchema, $tableSchemaStorage);
 
@@ -409,14 +443,14 @@ add_action('vp_plugin_changed', function ($action, $pluginFile, $pluginName) {
     /** @var DbSchemaInfo $dbSchema */
     $dbSchema = $versionPressContainer->resolve(VersionPressServices::DB_SCHEMA);
     $tableSchemaStorage = $versionPressContainer->resolve(VersionPressServices::TABLE_SCHEMA_STORAGE);
-    $dbSchema->refreshDbSchema(new ActivePluginsVPFilesIterator('schema.yml'));
+    $dbSchema->refreshDbSchema(PluginDefinitionDiscovery::getPathsForActivePlugins('schema.yml'));
 
     vp_update_table_ddl_scripts($dbSchema, $tableSchemaStorage);
 
     if ($action !== 'delete') {
         /** @var ActionsDefinitionRepository $actionsDefinitionRepository */
         $actionsDefinitionRepository = $versionPressContainer->resolve(VersionPressServices::ACTIONS_DEFINITION_REPOSITORY);
-        $actionsDefinitionRepository->saveDefinitionForPlugin($pluginFile);
+        $actionsDefinitionRepository->saveActionsFileForPlugin($pluginFile);
     }
 
     $pluginPath = WP_PLUGIN_DIR . "/";
@@ -458,7 +492,7 @@ add_action('vp_theme_changed', function ($action, $stylesheet, $themeName) {
 
     $dbSchema = $versionPressContainer->resolve(VersionPressServices::DB_SCHEMA);
     $tableSchemaStorage = $versionPressContainer->resolve(VersionPressServices::TABLE_SCHEMA_STORAGE);
-    $dbSchema->refreshDbSchema(new ActivePluginsVPFilesIterator('schema.yml'));
+    $dbSchema->refreshDbSchema(PluginDefinitionDiscovery::getPathsForActivePlugins('schema.yml'));
 
     vp_update_table_ddl_scripts($dbSchema, $tableSchemaStorage);
 

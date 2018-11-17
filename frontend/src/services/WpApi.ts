@@ -3,14 +3,14 @@
 import * as request from 'superagent';
 
 import config from '../config/config';
-import {getValidVPJSON} from '../utils/StringUtils';
+import { getValidVPJSON } from '../utils/StringUtils';
 
 request.parse['application/json'] = function(str: string) {
   let parsedJSON;
   try {
     parsedJSON = JSON.parse(str);
   } catch (e) {
-    const validJSON = getValidVPJSON(str);
+    const validJSON = getValidVPJSON(str)!;
     parsedJSON = JSON.parse(validJSON);
   }
   if ('__VP__' in parsedJSON || ('code' in parsedJSON && 'message' in parsedJSON)) {
@@ -19,8 +19,8 @@ request.parse['application/json'] = function(str: string) {
   throw new Error('Error: Parser is unable to parse the response');
 };
 
-const noCache = function (request) {
-  var timestamp = Date.now().toString();
+const noCache = function (request: request.Request) {
+  let timestamp = Date.now().toString();
   request.query(timestamp);
   return request;
 };

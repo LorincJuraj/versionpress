@@ -37,7 +37,7 @@ jQuery(document).ready(function($) {
         <h3>Welcome to VersionPress!</h3>
 
         <p class="about-description">
-            VersionPress needs a one-time activation step that initializes its internal storage. <strong>This step is resource-intensive and might take a while</strong> if your site has many entities (posts, comments etc.). The site will be put in maintanenance mode until it finishes.
+            VersionPress needs a one-time activation step that initializes its internal storage. <strong>This step is resource-intensive and might take a while</strong> if your site has many entities (posts, comments etc.). The site will be put in maintenance mode until it finishes.
         </p>
 
         <div class="checks-and-warnings">
@@ -95,7 +95,7 @@ jQuery(document).ready(function($) {
                 <ul>
                     <li>
                         <span class="icon vp-icon-notification"></span>
-                        You are activating an <strong>Early Access version</strong>. If you encounter any issues please let us know <a href="https://github.com/versionpress/support">on GitHub</a>. <a href="http://docs.versionpress.net/en/getting-started/about-eap">Learn more</a>.
+                        You are activating a <strong>Developer Preview version</strong>. If you encounter any issues please let us know <a href="https://github.com/versionpress/support">on GitHub</a>. <a href="http://docs.versionpress.net/en/getting-started/about-eap">Learn more</a>.
                     </li>
                     <li>
                         <span class="icon vp-icon-notification"></span>

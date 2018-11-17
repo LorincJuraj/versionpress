@@ -4,7 +4,12 @@
     "sourceMap": true,
     "target": "es5",
     "jsx": "react",
-    "experimentalDecorators": true
+    "lib": ["es2016", "dom"],
+    "experimentalDecorators": true,
+    "strict": true,
+    "strictFunctionTypes": false,
+    "strictPropertyInitialization": false,
+    "typeRoots" : ["./node_modules/@types/"]
   },
   "include": [
     "src/**/*.ts",

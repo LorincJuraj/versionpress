@@ -44,11 +44,12 @@ class VPCommand extends WP_CLI_Command
      *
      * <constant>
      * : The name of the constant to set.
-     *   VP_GIT_BINARY:   Absolute path to the git binary.
-     *   VP_PROJECT_ROOT: Absolute path to the root of your project (typically
-     *                    where is the .git directory)
-     *   VP_VPDB_DIR:     Absolute path to directory where VersionPress saves
-     *                    versioned database data.
+     *   VP_GIT_BINARY:     Absolute path to the git binary.
+     *   VP_WP_CLI_BINARY:  Absolute path to the WP-CLI binary.
+     *   VP_PROJECT_ROOT:   Absolute path to the root of your project (typically
+     *                      where is the .git directory)
+     *   VP_VPDB_DIR:       Absolute path to directory where VersionPress saves
+     *                      versioned database data.
      *
      * [<value>]
      * : The new value. If missing, just prints out current value.
@@ -64,6 +65,10 @@ class VPCommand extends WP_CLI_Command
          */
         $allowedConstants = [
             'VP_GIT_BINARY' => [
+                'common' => false,
+                'type' => 'absolute-path',
+            ],
+            'VP_WP_CLI_BINARY' => [
                 'common' => false,
                 'type' => 'absolute-path',
             ],
@@ -159,6 +164,10 @@ class VPCommand extends WP_CLI_Command
     public function activate($args, $assoc_args)
     {
         global $versionPressContainer;
+        if (VersionPress::isActive()) {
+            WP_CLI::error('VersionPress is already fully activated.');
+            return;
+        }
 
         $this->checkVpRequirements($assoc_args, RequirementsChecker::SITE);
 
@@ -171,9 +180,7 @@ class VPCommand extends WP_CLI_Command
 
         WP_CLI::line('');
 
-        $successfullyInitialized = VersionPress::isActive();
-
-        if ($successfullyInitialized) {
+        if (VersionPress::isActive()) {
             WP_CLI::success('VersionPress is fully activated.');
         } else {
             WP_CLI::error('Something went wrong. Please try the activation again.');
@@ -736,7 +743,7 @@ class VPCommand extends WP_CLI_Command
 
         /** @var ActionsDefinitionRepository $actionsDefinitionRepository */
         $actionsDefinitionRepository = $versionPressContainer->resolve(VersionPressServices::ACTIONS_DEFINITION_REPOSITORY);
-        $actionsDefinitionRepository->restoreAllDefinitionFilesFromHistory();
+        $actionsDefinitionRepository->restoreAllActionsFilesFromHistory();
 
         // Run synchronization
         /** @var SynchronizationProcess $syncProcess */
@@ -775,7 +782,7 @@ class VPCommand extends WP_CLI_Command
 
         /** @var ActionsDefinitionRepository $actionsDefinitionRepository */
         $actionsDefinitionRepository = $versionPressContainer->resolve(VersionPressServices::ACTIONS_DEFINITION_REPOSITORY);
-        $actionsDefinitionRepository->restoreAllDefinitionFilesFromHistory();
+        $actionsDefinitionRepository->restoreAllActionsFilesFromHistory();
 
         /** @var SynchronizationProcess $syncProcess */
         $syncProcess = $versionPressContainer->resolve(VersionPressServices::SYNCHRONIZATION_PROCESS);
@@ -1217,7 +1224,7 @@ class VPCommand extends WP_CLI_Command
 
     private function runVPInternalCommand($subcommand, $args = [], $cwd = null)
     {
-        $args = $args + ['require' => __DIR__ . '/vp-internal.php'];
+        $args = ['require' => __DIR__ . '/vp-internal.php'] + $args;
         return VPCommandUtils::runWpCliCommand('vp-internal', $subcommand, $args, $cwd);
     }
 

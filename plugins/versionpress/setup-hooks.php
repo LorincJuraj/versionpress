@@ -106,15 +106,7 @@ function vp_register_hooks()
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
     }
 
-    $plugins = wp_get_active_and_valid_plugins();
-
-    foreach ($plugins as $pluginFile) {
-        $pluginDir = dirname($pluginFile);
-        $hooksFile = $pluginDir . '/.versionpress/hooks.php';
-        if (file_exists($hooksFile)) {
-            require_once $hooksFile;
-        }
-    }
+    vp_load_hooks_files();
 
     add_filter('update_feedback', function () {
         touch(ABSPATH . 'versionpress.maintenance');
@@ -223,7 +215,7 @@ function vp_register_hooks()
 
     add_action('switch_theme', function () use ($committer) {
         if (defined('WP_CLI') && WP_CLI) {
-            wp_remote_get(admin_url()); //
+            wp_remote_get(admin_url());
         } else {
             $committer->disableCommit(); // the change will be committed on next load
         }
@@ -285,7 +277,7 @@ function vp_register_hooks()
         $post = get_post($post_id);
         $actionsInfo = $actionsInfoProvider->getActionsInfo('post');
 
-        $changeInfo = new EntityChangeInfo($dbSchemaInfo->getEntityInfo('post'), $actionsInfo, 'edit', $vpid, ['VP-Post-Type' => $post->post_type, 'VP-Post-Title' => $post->post_title]);
+        $changeInfo = new EntityChangeInfo($dbSchemaInfo->getEntityInfo('post'), $actionsInfo, 'update', $vpid, ['VP-Post-Type' => $post->post_type, 'VP-Post-Title' => $post->post_title]);
         $committer->forceChangeInfo($changeInfo);
     }, 10, 5);
 
@@ -436,7 +428,7 @@ function vp_register_hooks()
         $stylesheet = $_GET['theme'];
         $themeName = wp_get_theme($stylesheet)->get('Name');
 
-        do_action('vp_theme_changed', 'edit', $stylesheet, $themeName);
+        do_action('vp_theme_changed', 'update', $stylesheet, $themeName);
     }
 
     if (basename($_SERVER['PHP_SELF']) === 'plugin-editor.php' &&
@@ -476,7 +468,7 @@ function vp_register_hooks()
             }
         }
 
-        do_action('vp_plugin_changed', 'edit', $bestMatch, $plugins[$bestMatch]['Name']);
+        do_action('vp_plugin_changed', 'update', $bestMatch, $plugins[$bestMatch]['Name']);
     }
 
     add_filter('cron_schedules', function ($schedules) use ($dbSchemaInfo) {
@@ -689,6 +681,7 @@ function vp_display_activation_notice($file, $plugin_data)
 
 
 add_filter('wp_insert_post_data', 'vp_generate_post_guid', '99', 2);
+add_filter('wp_insert_attachment_data', 'vp_generate_post_guid', '99', 2);
 /**
  * Creates random GUID that is not based on URL
  *
@@ -824,7 +817,7 @@ function vp_admin_bar_warning(WP_Admin_Bar $adminBar)
     // @codingStandardsIgnoreStart
     $adminBarText = "<span style=\"color:#FF8800;font-weight:bold\">VersionPress running</span>";
     $popoverTitle = "Note";
-    $popoverText = "<p style='margin-top: 5px;'>You are running <strong>VersionPress " . VersionPress::getVersion() . "</strong> which is an <strong style='font-size: 1.15em;'>Early Access release</strong>. As such, it might not fully support certain workflows, 3<sup>rd</sup> party plugins, hosts etc.<br /><br /><strong>We recommend that you keep a safe backup of the site at all times</strong></p>";
+    $popoverText = "<p style='margin-top: 5px;'>You are running <strong>VersionPress " . VersionPress::getVersion() . "</strong> which is a <strong style='font-size: 1.15em;'>Developer Preview release</strong>. As such, it might not fully support certain workflows, 3<sup>rd</sup> party plugins, hosts etc.<br /><br /><strong>We recommend that you keep a safe backup of the site at all times</strong></p>";
     $popoverText .= "<p><a href='http://docs.versionpress.net/en/release-notes' target='_blank'>Learn more about VersionPress releases</a></p>";
 
     $adminBar->add_node([

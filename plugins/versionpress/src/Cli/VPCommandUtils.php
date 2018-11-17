@@ -12,7 +12,7 @@ class VPCommandUtils
     public static function runWpCliCommand($command, $subcommand, $args = [], $cwd = null)
     {
 
-        $cliCommand = "wp $command";
+        $cliCommand = VP_WP_CLI_BINARY . " $command";
 
         if ($subcommand) {
             $cliCommand .= " $subcommand";
@@ -20,8 +20,12 @@ class VPCommandUtils
 
         // Colorize the output
         if (defined('WP_CLI') && WP_CLI && \WP_CLI::get_runner()->in_color()) {
-            $args['color'] = null;
+            // All additional args need to be prepended, see #1279
+            $args = ['color' => null] + $args;
         }
+
+        // For commands that were run under root - #1049
+        $args = ['allow-root' => null] + $args;
 
         foreach ($args as $name => $value) {
             if (is_int($name)) { // positional argument

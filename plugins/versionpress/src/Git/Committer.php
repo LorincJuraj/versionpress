@@ -6,9 +6,10 @@ use VersionPress\ChangeInfos\ChangeInfoEnvelope;
 use VersionPress\ChangeInfos\TrackedChangeInfo;
 use VersionPress\DI\VersionPressServices;
 use VersionPress\Git\ChangeInfoPreprocessors\ChangeInfoPreprocessor;
-use VersionPress\Git\ChangeInfoPreprocessors\EditActionChangeInfoPreprocessor;
+use VersionPress\Git\ChangeInfoPreprocessors\UpdateActionChangeInfoPreprocessor;
 use VersionPress\Git\ChangeInfoPreprocessors\PostChangeInfoPreprocessor;
 use VersionPress\Git\ChangeInfoPreprocessors\PostTermSplittingPreprocessor;
+use VersionPress\Git\ChangeInfoPreprocessors\TermTaxonomyPreprocessor;
 use VersionPress\Storages\Mirror;
 use VersionPress\Storages\StorageFactory;
 use VersionPress\Utils\FileSystem;
@@ -139,9 +140,10 @@ class Committer
         global $versionPressContainer;
 
         $preprocessors = [
-            EditActionChangeInfoPreprocessor::class,
+            UpdateActionChangeInfoPreprocessor::class,
             PostChangeInfoPreprocessor::class,
             PostTermSplittingPreprocessor::class,
+            TermTaxonomyPreprocessor::class,
         ];
 
         $changeInfoLists = [$changeInfoList];

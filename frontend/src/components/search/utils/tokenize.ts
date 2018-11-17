@@ -1,6 +1,6 @@
 /// <reference path='../Search.d.ts' />
 
-let counter;
+let counter: number;
 
 export function tokenize(text: string, config: SearchConfig): Token[] {
   let tokens: Token[] = [];
@@ -16,7 +16,7 @@ export function tokenize(text: string, config: SearchConfig): Token[] {
         tokens.push(createToken(mem, config));
       }
       if (character) {
-        tokens.push(createToken(null, config));
+        tokens.push(createToken('', config));
       }
       mem = '';
     } else if (character === '\'' || character === '"') {
@@ -67,11 +67,11 @@ export function createToken(text: string, config: SearchConfig = {}) {
 
   return {
     key: 'token-' + counter++,
-    modifier: modifier,
-    value: value,
-    type: type,
-    negative: negative,
-    length: length,
+    modifier,
+    value,
+    type,
+    negative,
+    length,
   };
 }
 
